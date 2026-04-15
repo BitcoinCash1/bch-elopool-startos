@@ -53,7 +53,7 @@
 
 | Package | Required | Notes |
 |---------|----------|-------|
-| **Bitcoin Cash Node** | Yes | BCHN or BCHD flavor. Must be fully synced with txindex enabled. |
+| **Bitcoin Cash Node** | Yes | BCHN, BCHD or Knuth. Must be fully synced with txindex enabled. |
 
 ## Quick Start
 
