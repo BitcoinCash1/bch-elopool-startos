@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.svg" alt="EloPool Logo" width="21%">
+</p>
+
 # EloPool for StartOS
 
 <p align="center">
