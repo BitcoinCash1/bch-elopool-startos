@@ -6,7 +6,6 @@ const configSpec = sdk.InputSpec.of({
     name: 'Node Backend',
     description:
       'Which BCH full node to use for mining. Must be installed and running on this StartOS server. All three nodes provide the RPC interface needed for mining.',
-    required: true,
     default: 'bitcoin-cash-node',
     values: {
       'bitcoin-cash-node': 'Bitcoin Cash Node (BCHN)',
