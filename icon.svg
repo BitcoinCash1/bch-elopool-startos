@@ -17,8 +17,6 @@
     <line x1="20" y1="-20" x2="30" y2="-30"/>
     <path d="M 15,-35 L 30,-30 L 35,-15" fill="none"/>
     <line x1="-20" y1="20" x2="-30" y2="30"/>
-    <!-- Rating/Elo star -->
-    <polygon points="0,-40 4,-30 14,-30 6,-24 9,-14 0,-20 -9,-14 -6,-24 -14,-30 -4,-30" fill="#f7931a" stroke="none" opacity="0.9"/>
   </g>
   <!-- EloPool text -->
   <text x="100" y="148" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="30" fill="#ffffff">EloPool</text>

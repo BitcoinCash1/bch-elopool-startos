@@ -80,8 +80,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
       btcd: [
         {
           url: `${nodeHost}:8332`,
-          auth: `${rpcUser}:${rpcPassword}`,
-          notify: `${nodeHost}:8330`,
+          auth: rpcUser,
+          pass: rpcPassword,
+          notify: true,
         },
       ],
       btcaddress: payoutAddress || '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
@@ -94,7 +95,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
       maxdiff: 0,
       logdir: `${rootDir}/pool/log`,
       rundir: `${rootDir}/pool/run`,
-      fee: poolFee / 100,
+      poolfee: poolFee / 100,
     },
     null,
     2,
@@ -105,8 +106,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
       btcd: [
         {
           url: `${nodeHost}:8332`,
-          auth: `${rpcUser}:${rpcPassword}`,
-          notify: `${nodeHost}:8330`,
+          auth: rpcUser,
+          pass: rpcPassword,
+          notify: true,
         },
       ],
       btcaddress: payoutAddress || '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
@@ -119,7 +121,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
       maxdiff: 0,
       logdir: `${rootDir}/solo/log`,
       rundir: `${rootDir}/solo/run`,
-      fee: 0,
+      poolfee: 0,
       solo: true,
     },
     null,
