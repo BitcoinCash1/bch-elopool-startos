@@ -94,7 +94,6 @@ export const main = sdk.setupMain(async ({ effects }) => {
       startdiff: poolDifficulty,
       maxdiff: 0,
       logdir: `${rootDir}/pool/log`,
-      rundir: `${rootDir}/pool/run`,
       poolfee: poolFee / 100,
     },
     null,
@@ -120,9 +119,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
       startdiff: poolDifficulty,
       maxdiff: 0,
       logdir: `${rootDir}/solo/log`,
-      rundir: `${rootDir}/solo/run`,
       poolfee: 0,
-      solo: true,
     },
     null,
     2,
@@ -131,13 +128,13 @@ export const main = sdk.setupMain(async ({ effects }) => {
   await poolSub.exec([
     'sh',
     '-c',
-    `mkdir -p ${rootDir}/pool/log ${rootDir}/pool/run && cat > ${rootDir}/pool/ckpool.conf << 'EOCONF'\n${poolConf}\nEOCONF`,
+    `mkdir -p ${rootDir}/pool/log && cat > ${rootDir}/pool/ckpool.conf << 'EOCONF'\n${poolConf}\nEOCONF`,
   ])
 
   await poolSub.exec([
     'sh',
     '-c',
-    `mkdir -p ${rootDir}/solo/log ${rootDir}/solo/run && cat > ${rootDir}/solo/ckpool.conf << 'EOCONF'\n${soloConf}\nEOCONF`,
+    `mkdir -p ${rootDir}/solo/log && cat > ${rootDir}/solo/ckpool.conf << 'EOCONF'\n${soloConf}\nEOCONF`,
   ])
 
   // ── Daemons ──────────────────────────────────────────────────────
@@ -149,7 +146,6 @@ export const main = sdk.setupMain(async ({ effects }) => {
           'pool-entrypoint.sh',
           'pool',
           `${rootDir}/pool/ckpool.conf`,
-          `${rootDir}/pool/log`,
         ],
         sigtermTimeout: 30_000,
       },
@@ -170,7 +166,6 @@ export const main = sdk.setupMain(async ({ effects }) => {
           'pool-entrypoint.sh',
           'solo',
           `${rootDir}/solo/ckpool.conf`,
-          `${rootDir}/solo/log`,
         ],
         sigtermTimeout: 30_000,
       },
