@@ -38,8 +38,15 @@ export const manifest = setupManifest({
   dependencies: {
     'bitcoin-cash-node': {
       description:
-        'Bitcoin Cash Node provides the blockchain data and RPC interface required for mining.',
+        'Bitcoin Cash Node (BCHN or Knuth flavor) provides the blockchain data, RPC interface, and block notifications required for mining.',
       optional: false,
+      s9pk: null,
+    },
+    'bitcoin-cash-daemon': {
+      description:
+        'Bitcoin Cash Daemon (BCHD) is an alternative Go-based full node. Can be used alongside BCHN for redundancy or alternative RPC access.',
+      optional: true,
+      s9pk: null,
     },
   },
 })
