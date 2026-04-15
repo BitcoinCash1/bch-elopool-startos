@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1b2a"/>
+      <stop offset="100%" style="stop-color:#1b2838"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f7931a"/>
+      <stop offset="100%" style="stop-color:#ffb347"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="32" fill="url(#bg)"/>
+  <!-- Mining pickaxe icon stylized -->
+  <g transform="translate(100,78)" fill="none" stroke="url(#accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Pickaxe shape -->
+    <line x1="-20" y1="20" x2="20" y2="-20"/>
+    <line x1="20" y1="-20" x2="30" y2="-30"/>
+    <path d="M 15,-35 L 30,-30 L 35,-15" fill="none"/>
+    <line x1="-20" y1="20" x2="-30" y2="30"/>
+    <!-- Rating/Elo star -->
+    <polygon points="0,-40 4,-30 14,-30 6,-24 9,-14 0,-20 -9,-14 -6,-24 -14,-30 -4,-30" fill="#f7931a" stroke="none" opacity="0.9"/>
+  </g>
+  <!-- EloPool text -->
+  <text x="100" y="148" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="30" fill="#ffffff">EloPool</text>
+  <!-- BCH Mining -->
+  <text x="100" y="172" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="12" fill="#f7931a" opacity="0.8">BCH Mining Pool</text>
+</svg>
