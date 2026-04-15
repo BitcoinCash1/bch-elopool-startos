@@ -146,11 +146,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
       subcontainer: poolSub,
       exec: {
         command: [
-          'ckpool',
-          '-c',
+          'pool-entrypoint.sh',
+          'pool',
           `${rootDir}/pool/ckpool.conf`,
-          '-B',
-          '-k',
           `${rootDir}/pool/log`,
         ],
         sigtermTimeout: 30_000,
@@ -169,11 +167,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
       subcontainer: soloSub,
       exec: {
         command: [
-          'ckpool',
-          '-c',
+          'pool-entrypoint.sh',
+          'solo',
           `${rootDir}/solo/ckpool.conf`,
-          '-B',
-          '-k',
           `${rootDir}/solo/log`,
         ],
         sigtermTimeout: 30_000,
