@@ -65,7 +65,7 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
     name: 'Web Dashboard',
     id: uiInterfaceId,
     description:
-      'Umbrel-inspired web dashboard for monitoring pool and solo mining stats',
+      'Web dashboard for monitoring pool and solo mining stats',
     type: 'ui',
     masked: false,
     schemeOverride: null,
