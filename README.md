@@ -18,7 +18,7 @@
 - **Solo Mining** (port 4567) — Winner takes the entire block reward
 - **Web Dashboard** (port 80) — Real-time hashrate, workers, blocks found
 - **Stratum Protocol** — Compatible with all ASIC miners (Antminer, Whatsminer, Bitaxe, etc.)
-- **Auto-configured** — Automatically connects to your Bitcoin Cash Node (BCHN or BCHD)
+- **Auto-configured** — Automatically connects to your Bitcoin Cash Node (BCHN or Knuth)
 - **Multi-architecture** — Runs on x86_64 and aarch64
 
 ## Architecture
@@ -37,7 +37,7 @@
 │                  │                         │         │
 │         ┌───────▼────────┐     ┌──────────▼───────┐ │
 │         │  /data volume  │     │  stats-api.sh    │ │
-│         │  (ckpool runs) │◄────│  (ckpmsg → JSON) │ │
+│         │  (ckpool runs) │◄────│  (logs → JSON)   │ │
 │         └───────┬────────┘     └──────────────────┘ │
 │                 │                                    │
 └─────────────────┼────────────────────────────────────┘
@@ -45,7 +45,7 @@
          ┌────────▼────────┐
          │  Bitcoin Cash   │
          │  Node (BCHN     │
-         │  or BCHD)       │
+         │  or Knuth)      │
          └─────────────────┘
 ```
 
@@ -229,7 +229,7 @@ EloPool runs two independent ckpool instances from the same Docker image:
 - **Pool instance** shares rewards proportionally based on submitted shares
 - **Solo instance** directs the entire block reward to whichever miner finds it
 
-Both instances connect to your Bitcoin Cash Node via RPC. The web dashboard uses `ckpmsg` to query ckpool's Unix domain sockets and serves stats as static JSON via nginx.
+Both instances connect to your Bitcoin Cash Node via RPC. The web dashboard reads ckpool's log files directly and serves stats as static JSON via nginx.
 
 You can point different miners to different modes simultaneously — no reconfiguration needed.
 
@@ -252,17 +252,17 @@ package: bch-elopool
 type: startos-service
 sdk: "@start9labs/start-sdk@1.0.0"
 upstream: skaisser/ckpool
-depends_on: bitcoin-cash-node (BCHN or BCHD)
+depends_on: bitcoincashd (BCHN or Knuth flavor)
 ports:
   pool: 3333 (stratum)
   solo: 4567 (stratum)
   ui: 80 (http)
 daemons: 3 (pool-ckpool, solo-ckpool, ui-nginx)
 volumes: main (/data)
-dependency_mount: /mnt/bitcoin-cash-node (reads store.json for RPC creds)
+dependency_mount: /mnt/bitcoincashd (reads store.json for RPC creds)
 critical_tasks: txindex=true, prune=null, zmqEnabled=true
 config_fields: payoutAddress, poolFee, poolIdentifier, poolDifficulty
-webui: nginx serving static HTML + stats-api.sh background (ckpmsg → JSON)
+webui: nginx serving static HTML + stats-api.sh background (logs → JSON)
 build: multi-stage Docker (ubuntu build-ckpool → node:20-bookworm-slim runtime)
 ```
 
