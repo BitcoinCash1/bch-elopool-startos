@@ -5,10 +5,10 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential autoconf automake libtool pkg-config \
     libssl-dev libjansson-dev libzmq3-dev \
-    git ca-certificates && \
+    ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/skaisser/ckpool.git /build/ckpool
+COPY ckpool-src /build/ckpool
 WORKDIR /build/ckpool
 RUN ./autogen.sh && ./configure && make
 

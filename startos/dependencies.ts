@@ -71,9 +71,9 @@ export const setDependencies = sdk.setupDependencies(async ({ effects }) => {
       healthChecks: ['primary'],
     }
   } else if (nodePackageId === 'flowee') {
-    deps['flowee'] = {
-      kind: 'running',
-      versionRange: '>=1.0.0:0',
+      deps['flowee'] = {
+        kind: 'running',
+        versionRange: '>=2026.2.0:0',
       healthChecks: ['primary'],
     }
   } else {
