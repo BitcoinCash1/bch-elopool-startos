@@ -23,9 +23,9 @@ rm -rf "/tmp/${MODE}" 2>/dev/null
 # -n sets the process name (controls socket directory under /tmp/{name}/)
 # -B enables solo mode (only for solo daemon)
 if [ "$MODE" = "solo" ]; then
-  CMD="ckpool -c $CONF -n $MODE -B"
+  CMD="ckpool -c $CONF -n $MODE -B -L"
 else
-  CMD="ckpool -c $CONF -n $MODE"
+  CMD="ckpool -c $CONF -n $MODE -L"
 fi
 
 log "starting ckpool mode=${MODE} conf=${CONF} rpc_target=${RPC_TARGET:-unknown} rpc_user=${RPC_USER:-unknown}"
