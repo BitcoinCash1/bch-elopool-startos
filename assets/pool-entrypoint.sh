@@ -15,6 +15,7 @@ log() {
 
 RPC_TARGET=$(jq -r '.btcd[0].url // empty' "$CONF" 2>/dev/null)
 RPC_USER=$(jq -r '.btcd[0].auth // empty' "$CONF" 2>/dev/null)
+RPC_PASS=$(jq -r '.btcd[0].pass // empty' "$CONF" 2>/dev/null)
 
 # Clean stale socket directory from previous runs
 rm -rf "/tmp/${MODE}" 2>/dev/null
@@ -28,6 +29,37 @@ else
 fi
 
 log "starting ckpool mode=${MODE} conf=${CONF} rpc_target=${RPC_TARGET:-unknown} rpc_user=${RPC_USER:-unknown}"
+
+# ckpool only creates the sharelog directory /data/{mode}/log/{blockheight:08x}/
+# when it detects a NEW block. Between restarts (or before the next block is
+# found on mainnet, ~10 min interval) there is no directory, so fopen() fails
+# and every share submitted in that window is silently dropped from the
+# sharelog — which is the ONLY place per-worker accepted/rejected counts are
+# persisted. Fix it by pre-creating the directory for the current tip (and the
+# next few heights) on a background loop, using the same RPC credentials the
+# pool uses.
+(
+  LOGROOT="/data/${MODE}/log"
+  while : ; do
+    if [ -n "$RPC_TARGET" ] && [ -n "$RPC_USER" ] && [ -n "$RPC_PASS" ]; then
+      BC=$(curl -s --max-time 5 --user "${RPC_USER}:${RPC_PASS}" \
+             --data-binary '{"jsonrpc":"1.0","id":"sl","method":"getblockcount","params":[]}' \
+             -H 'content-type: text/plain;' "http://${RPC_TARGET}/" 2>/dev/null \
+           | jq -r '.result // empty' 2>/dev/null)
+      if [ -n "$BC" ] && [ "$BC" -gt 0 ] 2>/dev/null; then
+        # Pre-create current and next 2 heights — covers the race where the
+        # pool learns the new-block notification slightly before or after us.
+        for d in 0 1 2; do
+          H=$((BC + d))
+          HEX=$(printf '%08x' "$H")
+          mkdir -p "${LOGROOT}/${HEX}" 2>/dev/null
+          chmod 0755 "${LOGROOT}/${HEX}" 2>/dev/null
+        done
+      fi
+    fi
+    sleep 30
+  done
+) &
 
 # Background loop: every 10s, query ckpool's live client table via ckpmsg
 # and write it to the shared /data volume so the UI subcontainer can derive
