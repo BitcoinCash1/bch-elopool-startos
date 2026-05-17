@@ -10,6 +10,9 @@ RUN apt-get update && \
 
 RUN git clone --depth 1 https://github.com/skaisser/ckpool.git /build/ckpool
 WORKDIR /build/ckpool
+# BCHD requires an "id" field in every JSON-RPC request; upstream ckpool omits it.
+# Patch all request strings in bitcoin.c before compiling.
+RUN sed -i 's/{\\\"method\\\": /{\\\"id\\\":0,\\\"method\\\": /g; s/{\\\"method\\\":\\\"/{\\\"id\\\":0,\\\"method\\\":\\\"/g' src/bitcoin.c
 RUN ./autogen.sh && ./configure && make
 
 # ── Runtime ─────────────────────────────────────────────────────────
