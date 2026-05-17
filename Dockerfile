@@ -11,8 +11,10 @@ RUN apt-get update && \
 RUN git clone --depth 1 https://github.com/skaisser/ckpool.git /build/ckpool
 WORKDIR /build/ckpool
 # BCHD requires an "id" field in every JSON-RPC request; upstream ckpool omits it.
-# Patch all request strings in bitcoin.c before compiling.
-RUN sed -i 's/{\\\"method\\\": /{\\\"id\\\":0,\\\"method\\\": /g; s/{\\\"method\\\":\\\"/{\\\"id\\\":0,\\\"method\\\":\\\"/g' src/bitcoin.c
+# Also remove "coinbasetxn" from the GBT capabilities: BCHD interprets it as
+# "build me a ready-made coinbase" and errors unless --miningaddr is set.
+# Without coinbasetxn, BCHD returns a normal template and the pool builds its own coinbase.
+RUN sed -i 's/{\\\"method\\\": /{\\\"id\\\":0,\\\"method\\\": /g; s/{\\\"method\\\":\\\"/{\\\"id\\\":0,\\\"method\\\":\\\"/g; s/\\\"coinbasetxn\\\", //g' src/bitcoin.c
 RUN ./autogen.sh && ./configure && make
 
 # ── Runtime ─────────────────────────────────────────────────────────
