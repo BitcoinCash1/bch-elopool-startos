@@ -14,7 +14,7 @@ export const manifest = setupManifest({
   ],
   description: {
     short: 'EloPool — BCH mining pool with pool & solo modes',
-    long: 'EloPool is a high-performance Bitcoin Cash mining pool built on ckpool. It supports dual-mode operation: pool mining (shared rewards on port 3333) and solo mining (winner takes all on port 4567). Includes a built-in WebUI dashboard for real-time monitoring.',
+    long: 'EloPool is a high-performance Bitcoin Cash mining pool built on ckpool. It supports dual-mode operation: pool mining (shared rewards on port 43333) and solo mining (winner takes all on port 4567). Includes a built-in WebUI dashboard for real-time monitoring.',
   },
   volumes: ['main'],
   images: {
