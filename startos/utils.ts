@@ -1,4 +1,4 @@
-export const poolPort = 43333
+export const poolPort = 3333
 export const soloPort = 4567
 export const uiPort = 80
 export const poolInterfaceId = 'pool-mining'
