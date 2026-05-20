@@ -15,6 +15,9 @@ WORKDIR /build/ckpool
 # "build me a ready-made coinbase" and errors unless --miningaddr is set.
 # Without coinbasetxn, BCHD returns a normal template and the pool builds its own coinbase.
 RUN sed -i 's/{\\\"method\\\": /{\\\"id\\\":0,\\\"method\\\": /g; s/{\\\"method\\\":\\\"/{\\\"id\\\":0,\\\"method\\\":\\\"/g; s/\\\"coinbasetxn\\\", //g' src/bitcoin.c
+# Cap miner-suggested difficulty to pool maxdiff. Upstream suggest_diff() only clamps to
+# mindiff but not maxdiff, so a miner suggesting e.g. 1000000 ignores the configured ceiling.
+RUN sed -i 's/if (sdiff == client->suggest_diff)/if (ckp->maxdiff \&\& sdiff > ckp->maxdiff) sdiff = ckp->maxdiff; if (sdiff == client->suggest_diff)/' src/stratifier.c
 RUN ./autogen.sh && ./configure && make
 
 # ── Runtime ─────────────────────────────────────────────────────────
