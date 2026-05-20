@@ -1,0 +1,22 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential autoconf automake libtool pkg-config \
+    libssl-dev libjansson-dev libzmq3-dev \
+    ca-certificates git && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 https://github.com/skaisser/ckpool.git /build/ckpool
+
+WORKDIR /build/ckpool
+
+# BCHD requires an "id" field in every JSON-RPC request; upstream ckpool omits it.
+# Also remove "coinbasetxn" from GBT capabilities: BCHD errors unless --miningaddr is set.
+RUN sed -i 's/{\\\"method\\\": /{\\\"id\\\":0,\\\"method\\\": /g; s/{\\\"method\\\":\\\"/{\\\"id\\\":0,\\\"method\\\":\\\"/g; s/\\\"coinbasetxn\\\", //g' src/bitcoin.c
+
+# Cap miner-suggested difficulty to pool maxdiff. Upstream suggest_diff() only clamps to
+# mindiff but not maxdiff, so a miner suggesting e.g. 1000000 ignores the configured ceiling.
+RUN sed -i 's/if (sdiff == client->suggest_diff)/if (ckp->maxdiff \&\& sdiff > ckp->maxdiff) sdiff = ckp->maxdiff; if (sdiff == client->suggest_diff)/' src/stratifier.c
+
+RUN ./autogen.sh && ./configure && make

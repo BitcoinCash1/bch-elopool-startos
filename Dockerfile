@@ -1,25 +1,3 @@
-# ── Build ckpool (EloPool) from source ──────────────────────────────
-FROM ubuntu:22.04 AS build-ckpool
-
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    build-essential autoconf automake libtool pkg-config \
-    libssl-dev libjansson-dev libzmq3-dev \
-    ca-certificates git && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN git clone --depth 1 https://github.com/skaisser/ckpool.git /build/ckpool
-WORKDIR /build/ckpool
-# BCHD requires an "id" field in every JSON-RPC request; upstream ckpool omits it.
-# Also remove "coinbasetxn" from the GBT capabilities: BCHD interprets it as
-# "build me a ready-made coinbase" and errors unless --miningaddr is set.
-# Without coinbasetxn, BCHD returns a normal template and the pool builds its own coinbase.
-RUN sed -i 's/{\\\"method\\\": /{\\\"id\\\":0,\\\"method\\\": /g; s/{\\\"method\\\":\\\"/{\\\"id\\\":0,\\\"method\\\":\\\"/g; s/\\\"coinbasetxn\\\", //g' src/bitcoin.c
-# Cap miner-suggested difficulty to pool maxdiff. Upstream suggest_diff() only clamps to
-# mindiff but not maxdiff, so a miner suggesting e.g. 1000000 ignores the configured ceiling.
-RUN sed -i 's/if (sdiff == client->suggest_diff)/if (ckp->maxdiff \&\& sdiff > ckp->maxdiff) sdiff = ckp->maxdiff; if (sdiff == client->suggest_diff)/' src/stratifier.c
-RUN ./autogen.sh && ./configure && make
-
 # ── Runtime ─────────────────────────────────────────────────────────
 FROM node:20-bookworm-slim
 
@@ -30,9 +8,9 @@ RUN apt-get update && \
     nginx libssl3 libjansson4 libzmq5 curl jq && \
     rm -rf /var/lib/apt/lists/*
 
-# ckpool binaries
-COPY --from=build-ckpool /build/ckpool/src/ckpool /usr/local/bin/
-COPY --from=build-ckpool /build/ckpool/src/ckpmsg /usr/local/bin/
+# ckpool binaries (pre-built, BCHD-patched — see Dockerfile.binary)
+COPY --from=ghcr.io/bitcoincash1/ckpool-bchd:latest /build/ckpool/src/ckpool /usr/local/bin/
+COPY --from=ghcr.io/bitcoincash1/ckpool-bchd:latest /build/ckpool/src/ckpmsg /usr/local/bin/
 
 # WebUI static files
 COPY webui/ /var/www/html/
