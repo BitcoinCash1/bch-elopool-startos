@@ -9,8 +9,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const payoutAddress = store?.payoutAddress ?? ''
   const poolFee = store?.poolFee ?? 1
   const poolIdentifier = store?.poolIdentifier ?? 'EloPool'
-  const poolDifficulty = store?.poolDifficulty ?? 64
-  const maxDiff = store?.maxDiff ?? 2147483648
+  const poolDifficulty = store?.poolDifficulty ?? 42
   const nodePackageId = store?.nodePackageId ?? 'bitcoincashd'
 
   const nodeAddressMode = store?.nodeAddressMode ?? 'auto'
@@ -231,7 +230,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         serverurl: [`0.0.0.0:${poolPort}`],
         mindiff: 1,
         startdiff: poolDifficulty,
-        maxdiff: maxDiff,
+        maxdiff: 0,
         logdir: `${rootDir}/pool/log`,
         poolfee: poolFee / 100,
       },
@@ -258,7 +257,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         serverurl: [`0.0.0.0:${soloPort}`],
         mindiff: 1,
         startdiff: poolDifficulty,
-        maxdiff: maxDiff,
+        maxdiff: 0,
         logdir: `${rootDir}/solo/log`,
         poolfee: 0,
       },
