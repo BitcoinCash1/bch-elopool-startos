@@ -9,8 +9,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ckpool binaries (pre-built, BCHD-patched — see Dockerfile.binary)
-COPY --from=ghcr.io/bitcoincash1/ckpool-bchd:latest /build/ckpool/src/ckpool /usr/local/bin/
-COPY --from=ghcr.io/bitcoincash1/ckpool-bchd:latest /build/ckpool/src/ckpmsg /usr/local/bin/
+COPY --from=ghcr.io/bitcoincash1/elopool-bch:latest /build/ckpool/src/ckpool /usr/local/bin/
+COPY --from=ghcr.io/bitcoincash1/elopool-bch:latest /build/ckpool/src/ckpmsg /usr/local/bin/
 
 # WebUI static files
 COPY webui/ /var/www/html/
