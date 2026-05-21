@@ -35,5 +35,5 @@ jobs:
           file: Dockerfile.binary
           push: true
           tags: |
-            ghcr.io/bitcoincash1/ckpool-bchd:latest
-            ghcr.io/bitcoincash1/ckpool-bchd:${{ github.sha }}
+            ghcr.io/bitcoincash1/elopool-bch:latest
+            ghcr.io/bitcoincash1/elopool-bch:${{ github.sha }}

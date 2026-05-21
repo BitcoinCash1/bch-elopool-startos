@@ -52,7 +52,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull ckpool binary image
-        run: docker pull ghcr.io/bitcoincash1/ckpool-bchd:latest
+        run: docker pull ghcr.io/bitcoincash1/elopool-bch:latest
         shell: bash
 
       - name: Build service packages
