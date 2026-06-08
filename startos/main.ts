@@ -334,7 +334,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         display: 'Pool Mining',
         fn: async () =>
           sdk.healthCheck.checkPortListening(effects, poolPort, {
-            successMessage: `Pool mining stratum ready on port ${poolPort}`,
+            successMessage: `Pool mining stratum ready on port ${poolPort} [${nodeNetwork}]`,
             errorMessage: 'Pool mining stratum starting...',
           }),
       },
@@ -354,7 +354,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         display: 'Solo Mining',
         fn: async () =>
           sdk.healthCheck.checkPortListening(effects, soloPort, {
-            successMessage: `Solo mining stratum ready on port ${soloPort}`,
+            successMessage: `Solo mining stratum ready on port ${soloPort} [${nodeNetwork}]`,
             errorMessage: 'Solo mining stratum starting...',
           }),
       },
