@@ -9,7 +9,7 @@ export const manifest = setupManifest({
   marketingUrl: 'https://elopool.bch.sx',
   donationUrl: null,
   docsUrls: [
-    'https://github.com/BitcoinCash1/bch-elopool-startos/blob/master/README.md',
+    'https://github.com/BitcoinCash1/bch-elopool-startos/blob/master/instructions.md',
     'https://github.com/skaisser/ckpool',
   ],
   description: {
