@@ -20,15 +20,19 @@ export const main = sdk.setupMain(async ({ effects }) => {
     nodeAddressMode === 'custom' && customNodeHost.length > 0
       ? customNodeHost
       : defaultNodeHost
-  // BCHD serves RPC over native TLS (self-signed cert). ckpool-lineage has no
-  // TLS library, so BCHD exposes a stunnel plaintext proxy on port 8334 that
-  // forwards to its TLS RPC on 8332 internally. Use 8334 automatically when
-  // the selected node is bchd; everything else speaks plaintext on 8332.
-  const defaultRpcPort = nodePackageId === 'bchd' ? 8334 : 8332
-  const nodePort =
+  // BCHN remaps its RPC port per network; other nodes always use 8332 (or 8334 for BCHD).
+  // nodeNetwork is updated after reading the dependency store.json; nodePort is finalised then.
+  const bitcoincashdRpcPorts: Record<string, number> = {
+    mainnet: 8332, testnet3: 18332, testnet4: 28342,
+    scalenet: 38332, chipnet: 48332, regtest: 18443,
+  }
+  let nodeNetwork = 'mainnet'
+  // nodePort is computed after reading the node store so the correct network port is used.
+  // Initialise to the in-custom-mode value or a placeholder; overwritten below.
+  let nodePort =
     nodeAddressMode === 'custom' && Number.isFinite(customNodePort) && customNodePort > 0
       ? customNodePort
-      : defaultRpcPort
+      : 8332 // placeholder — replaced after store read
 
   const torMode = store?.torMode ?? 'off'
   const torProxyHost = (store?.torProxyHost ?? 'tor.startos').trim() || 'tor.startos'
@@ -77,7 +81,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
     'ui-sub',
   )
 
-  // ── Read node RPC credentials from mounted dependency ────────────
+  // ── Read node RPC credentials and network from mounted dependency ─
   const maxStoreReadAttempts = 15
   let rpcUser = nodePackageId
   let rpcPassword = ''
@@ -92,9 +96,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
         const nodeStore = JSON.parse(result.stdout.toString()) as {
           rpcUser?: string
           rpcPassword?: string
+          network?: string
         }
         rpcUser = nodeStore.rpcUser ?? rpcUser
         rpcPassword = nodeStore.rpcPassword ?? rpcPassword
+        nodeNetwork = nodeStore.network ?? nodeNetwork
         storeReadOk = true
         break
       }
@@ -112,6 +118,13 @@ export const main = sdk.setupMain(async ({ effects }) => {
     throw new Error(
       `Dependency store.json was not readable at ${nodeMountpoint}/store.json`,
     )
+  }
+
+  // Finalise nodePort now that nodeNetwork is known.
+  if (nodeAddressMode !== 'custom' || !(Number.isFinite(customNodePort) && customNodePort > 0)) {
+    nodePort = nodePackageId === 'bchd' ? 8334
+      : nodePackageId === 'bitcoincashd' ? (bitcoincashdRpcPorts[nodeNetwork] ?? 8332)
+      : 8332
   }
 
   if (!rpcPassword) {
@@ -281,6 +294,29 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const proxyPrefix = torEnabled
     ? `export ALL_PROXY='${torProxyUrl}' HTTP_PROXY='${torProxyUrl}' HTTPS_PROXY='${torProxyUrl}'; `
     : ''
+
+  // ── Network monitor ──────────────────────────────────────────────
+  // When BCHN switches networks its RPC port changes. Restart main.ts
+  // so the new port is picked up and ckpool config is rewritten.
+  let netMonitorActive = true
+  ;(async () => {
+    while (netMonitorActive) {
+      await new Promise<void>(r => setTimeout(r, 15_000))
+      if (!netMonitorActive) break
+      try {
+        const result = await poolSub.exec(['cat', `${nodeMountpoint}/store.json`])
+        if (result.exitCode === 0) {
+          const s = JSON.parse(result.stdout.toString()) as { network?: string }
+          if (s?.network && s.network !== nodeNetwork) {
+            console.log(`[net-monitor] Node network changed ${nodeNetwork} -> ${s.network} — restarting service`)
+            netMonitorActive = false
+            await effects.restart()
+            return
+          }
+        }
+      } catch {}
+    }
+  })().catch(() => {})
 
   // ── Daemons ──────────────────────────────────────────────────────
   return sdk.Daemons.of(effects)
