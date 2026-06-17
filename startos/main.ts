@@ -20,10 +20,10 @@ export const main = sdk.setupMain(async ({ effects }) => {
     nodeAddressMode === 'custom' && customNodeHost.length > 0
       ? customNodeHost
       : defaultNodeHost
-  // BCHN remaps its RPC port per network; other nodes always use 8332 (or 8334 for BCHD).
+  // All BCH full nodes use the same per-network RPC port scheme (BCHD is 8334 on all networks).
   // nodeNetwork is updated after reading the dependency store.json; nodePort is finalised then.
-  const bitcoincashdRpcPorts: Record<string, number> = {
-    mainnet: 8332, testnet3: 18332, testnet4: 28342,
+  const bchRpcPorts: Record<string, number> = {
+    mainnet: 8332, testnet: 18332, testnet3: 18332, testnet4: 28342,
     scalenet: 38332, chipnet: 48332, regtest: 18443,
   }
   let nodeNetwork = 'mainnet'
@@ -123,8 +123,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // Finalise nodePort now that nodeNetwork is known.
   if (nodeAddressMode !== 'custom' || !(Number.isFinite(customNodePort) && customNodePort > 0)) {
     nodePort = nodePackageId === 'bchd' ? 8334
-      : nodePackageId === 'bitcoincashd' ? (bitcoincashdRpcPorts[nodeNetwork] ?? 8332)
-      : 8332
+      : (bchRpcPorts[nodeNetwork] ?? 8332)
   }
 
   if (!rpcPassword) {

@@ -1,3 +1,29 @@
+# ── Build ckpool from source (with BCH + Flowee patches) ─────────────────────
+FROM ubuntu:22.04 AS ckpool-builder
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential autoconf automake libtool pkg-config \
+    libssl-dev libjansson-dev libzmq3-dev \
+    ca-certificates git && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 https://github.com/skaisser/ckpool.git /build/ckpool
+
+WORKDIR /build/ckpool
+
+# BCHD requires an "id" field in every JSON-RPC request; upstream ckpool omits it.
+# Also remove "coinbasetxn" from GBT capabilities: BCHD errors unless --miningaddr is set.
+RUN sed -i 's/{\\\"method\\\": /{\\\"id\\\":0,\\\"method\\\": /g; s/{\\\"method\\\":\\\"/{\\\"id\\\":0,\\\"method\\\":\\\"/g; s/\\\"coinbasetxn\\\", //g' src/bitcoin.c
+
+# Flowee omits coinbaseaux (optional per BIP22); guard NULL dereference and remove from required-field check.
+RUN sed -i \
+    -e 's/flags = json_string_value(json_object_get(coinbase_aux, "flags"));/flags = coinbase_aux ? json_string_value(json_object_get(coinbase_aux, "flags")) : NULL;/' \
+    -e 's/ || !coinbase_aux//' \
+    src/bitcoin.c
+
+RUN ./autogen.sh && ./configure && make
+
 # ── Runtime ─────────────────────────────────────────────────────────
 FROM node:20-bookworm-slim
 
@@ -8,9 +34,9 @@ RUN apt-get update && \
     nginx libssl3 libjansson4 libzmq5 curl jq && \
     rm -rf /var/lib/apt/lists/*
 
-# ckpool binaries (pre-built, BCHD-patched — see Dockerfile.binary)
-COPY --from=ghcr.io/bitcoincash1/elopool-bch:latest /build/ckpool/src/ckpool /usr/local/bin/
-COPY --from=ghcr.io/bitcoincash1/elopool-bch:latest /build/ckpool/src/ckpmsg /usr/local/bin/
+# ckpool binaries (built above with BCH + Flowee patches — see Dockerfile.binary for the canonical image)
+COPY --from=ckpool-builder /build/ckpool/src/ckpool /usr/local/bin/
+COPY --from=ckpool-builder /build/ckpool/src/ckpmsg /usr/local/bin/
 
 # WebUI static files
 COPY webui/ /var/www/html/
