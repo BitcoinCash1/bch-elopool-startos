@@ -1,5 +1,5 @@
 # ── Build ckpool from source (with BCH + Flowee patches) ─────────────────────
-FROM ubuntu:22.04 AS ckpool-builder
+FROM --platform=linux/amd64 ubuntu:22.04 AS ckpool-builder
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
