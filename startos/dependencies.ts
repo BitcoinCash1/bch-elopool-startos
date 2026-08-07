@@ -58,7 +58,7 @@ export const setDependencies = sdk.setupDependencies(async ({ effects }) => {
       // Knuth v1.3.0: mempool + light mining RPC (getblocktemplatelight /
       // submitblocklight). Force RPC on + full DB. EloPool still speaks
       // classic getblocktemplate — protocol mismatch, not "no mining"
-      // (k-nuth/kth#616).
+
       await sdk.action.createTask(effects, 'knuth-bch', knuthAutoconfig, 'critical', {
         input: {
           kind: 'partial',
