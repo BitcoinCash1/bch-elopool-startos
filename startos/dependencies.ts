@@ -55,9 +55,10 @@ export const setDependencies = sdk.setupDependencies(async ({ effects }) => {
         when: { condition: 'input-not-matches', once: false },
       })
     } else if (nodePackageId === 'knuth-bch') {
-      // Knuth v1.3.0+ optional JSON-RPC. Force RPC on + full DB.
-      // Classic getblocktemplate/submitblock still missing upstream
-      // (only *light variants) — k-nuth/kth#616.
+      // Knuth v1.3.0: mempool + light mining RPC (getblocktemplatelight /
+      // submitblocklight). Force RPC on + full DB. EloPool still speaks
+      // classic getblocktemplate — protocol mismatch, not "no mining"
+      // (k-nuth/kth#616).
       await sdk.action.createTask(effects, 'knuth-bch', knuthAutoconfig, 'critical', {
         input: {
           kind: 'partial',
