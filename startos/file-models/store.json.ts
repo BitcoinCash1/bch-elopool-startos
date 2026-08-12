@@ -19,6 +19,13 @@ export const shape = z.object({
   manualRpcPassword: z.string().catch(''),
   nodeRpcUser: z.string().catch(''),
   nodeRpcPassword: z.string().catch(''),
+  // Set true by the "Wipe Mining State" action; consumed (and cleared) by
+  // main.ts on the next start to delete persisted ckpool stats.
+  wipePending: z.boolean().catch(false),
+  // The node network used at the last successful start. If it changes, main.ts
+  // auto-wipes stats so cross-network numbers don't leak (e.g. mainnet shares
+  // shown against chipnet difficulty).
+  lastNetwork: z.string().catch(''),
 })
 
 export const storeJson = FileHelper.json(
