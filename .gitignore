@@ -1,5 +1,8 @@
 *.s9pk
+startos/*.js
 node_modules/
-javascript/
 .DS_Store
-ckpool-src/
+.vscode/
+docker-images
+javascript
+ncc-cache
