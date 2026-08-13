@@ -1,10 +1,10 @@
 import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '1.1.0:0',
+  version: '1.1.0:1',
   releaseNotes: {
     en_US:
-      'The solo fee now works. ckpool reads it as a percentage and pays it to a separate address, and this package was both dividing it by a hundred and never setting that address — so whatever you asked for, nothing was taken. The pool also reaches its node the way StartOS intends, which fixes mining against Flowee the Hub: its RPC credentials moved and the pool was still looking for the old ones. Choosing Knuth as the backend is gone — it does not serve the kind of block template this pool asks for. Mining addresses are shown as stratum+tcp:// URLs you can copy straight into a miner, and a new Node health check reports when the node is still syncing.',
+      'Optional Knuth sideload (BitcoinCash1); Flowee is dialed on the per-network RPC port. The solo fee now works (it was divided by a hundred and the fee address was never set). The pool reaches its node over the StartOS host bridge. Mining addresses are shown as stratum+tcp:// URLs, and a Node health check reports when the node is still syncing.',
     es_ES:
       'La comisión de solo ya funciona. ckpool la lee como porcentaje y la paga a una dirección aparte; este paquete la dividía entre cien y nunca fijaba esa dirección, así que no se cobraba nada. El pool también llega a su nodo como StartOS espera, lo que arregla la minería con Flowee the Hub: sus credenciales RPC cambiaron de sitio y el pool seguía buscando las antiguas. Se elimina Knuth como backend: no sirve el tipo de plantilla de bloque que pide este pool. Las direcciones de minería se muestran como URLs stratum+tcp:// que puede copiar directamente en un minero, y una nueva comprobación de estado Nodo avisa cuando el nodo aún se está sincronizando.',
     de_DE:

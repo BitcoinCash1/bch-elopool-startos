@@ -63,6 +63,7 @@ export default {
     58: 'El nodo cambió de ${from} a ${to}. Reiniciando.',
     59: 'El nodo todavía se está sincronizando. Los bloques encontrados antes de que se ponga al día serían rechazados por la red.',
     60: 'Minando en ${chain}',
+    61: 'Knuth',
   },
   de_DE: {
     0: 'Konfigurieren',
@@ -126,6 +127,7 @@ export default {
     58: 'Der Knoten hat von ${from} zu ${to} gewechselt. Neustart.',
     59: 'Der Knoten synchronisiert noch. Blöcke, die vor dem Aufholen gefunden werden, würden vom Netzwerk abgelehnt.',
     60: 'Mining auf ${chain}',
+    61: 'Knuth',
   },
   pl_PL: {
     0: 'Konfiguruj',
@@ -189,6 +191,7 @@ export default {
     58: 'Węzeł przeszedł z ${from} na ${to}. Ponowne uruchamianie.',
     59: 'Węzeł wciąż się synchronizuje. Bloki znalezione, zanim nadrobi zaległości, zostałyby odrzucone przez sieć.',
     60: 'Kopanie na ${chain}',
+    61: 'Knuth',
   },
   fr_FR: {
     0: 'Configurer',
@@ -252,5 +255,6 @@ export default {
     58: 'Le nœud est passé de ${from} à ${to}. Redémarrage.',
     59: 'Le nœud est encore en cours de synchronisation. Les blocs trouvés avant qu’il ait rattrapé son retard seraient rejetés par le réseau.',
     60: 'Minage sur ${chain}',
+    61: 'Knuth',
   },
 } satisfies Record<string, LangDict>

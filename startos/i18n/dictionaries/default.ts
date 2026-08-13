@@ -77,6 +77,7 @@ const dict = {
   'The node switched from ${from} to ${to}. Restarting.': 58,
   'The node is still syncing. Blocks found before it catches up would be rejected by the network.': 59,
   'Mining on ${chain}': 60,
+  'Knuth': 61,
 } as const
 
 /**
