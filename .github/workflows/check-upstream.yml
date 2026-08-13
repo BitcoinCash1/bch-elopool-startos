@@ -1,0 +1,67 @@
+name: Check Upstream
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for a new upstream ckpool release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          LATEST=$(gh release view --repo skaisser/ckpool --json tagName -q '.tagName' 2>/dev/null || echo "")
+          if [ -z "$LATEST" ]; then echo "Could not fetch upstream version"; exit 0; fi
+
+          CURRENT=$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          idx = Path("startos/versions/index.ts").read_text()
+          var = re.search(r"current:\s*(\w+)", idx).group(1)
+          imp = re.search(rf"import \{{\s*{re.escape(var)}\s*\}} from '([^']+)'", idx)
+          ver = re.search(
+              r"version:\s*'([^']+)'",
+              Path("startos/versions/" + imp.group(1).lstrip("./") + ".ts").read_text(),
+          ).group(1)
+          print("v" + ver.split(":", 1)[0])
+          PY
+          )
+
+          echo "Package $CURRENT / upstream $LATEST"
+          if bash scripts/auto-bump.sh "$LATEST"; then
+            # auto-bump exits 0 both when it committed and when already equal
+            NEW=$(python3 - <<'PY'
+            import re
+            from pathlib import Path
+            idx = Path("startos/versions/index.ts").read_text()
+            var = re.search(r"current:\s*(\w+)", idx).group(1)
+            imp = re.search(rf"import \{{\s*{re.escape(var)}\s*\}} from '([^']+)'", idx)
+            ver = re.search(
+                r"version:\s*'([^']+)'",
+                Path("startos/versions/" + imp.group(1).lstrip("./") + ".ts").read_text(),
+            ).group(1)
+            print(ver.split(":", 1)[0])
+            PY
+            )
+            if [ "v$NEW" != "$CURRENT" ] && [ "$NEW" != "${CURRENT#v}" ]; then
+              gh workflow run tagAndRelease.yml
+            else
+              echo "No version change — not dispatching release"
+            fi
+          else
+            echo "auto-bump skipped (not newer) — not dispatching release"
+          fi
+        shell: bash
