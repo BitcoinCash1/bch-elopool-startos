@@ -214,6 +214,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
     update_interval: 30,
     mindiff: 1,
     startdiff: settings?.poolDifficulty ?? 42,
+    // ckpool treats listen ports >4000 as ASIC highdiff (1e6). Solo is 4567,
+    // so pin highdiff to start difficulty or chipnet CPU shares are rejected.
+    highdiff: settings?.poolDifficulty ?? 42,
     // 0 is upstream's default: no cap, vardiff follows the hardware.
     maxdiff: 0,
   }

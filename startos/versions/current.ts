@@ -1,10 +1,10 @@
 import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '1.1.0:1',
+  version: '1.1.0:2',
   releaseNotes: {
     en_US:
-      'Optional Knuth sideload (BitcoinCash1); Flowee is dialed on the per-network RPC port. The solo fee now works (it was divided by a hundred and the fee address was never set). The pool reaches its node over the StartOS host bridge. Mining addresses are shown as stratum+tcp:// URLs, and a Node health check reports when the node is still syncing.',
+      'Solo (port 4567) no longer starts at ASIC-scale share difficulty. ckpool treats ports above 4000 as highdiff (1e6); highdiff is now the configured start difficulty so CPU miners on chipnet can land shares. Optional Knuth sideload (BitcoinCash1); Flowee is dialed on the per-network RPC port. The solo fee now works (it was divided by a hundred and the fee address was never set). The pool reaches its node over the StartOS host bridge. Mining addresses are shown as stratum+tcp:// URLs, and a Node health check reports when the node is still syncing.',
     es_ES:
       'La comisión de solo ya funciona. ckpool la lee como porcentaje y la paga a una dirección aparte; este paquete la dividía entre cien y nunca fijaba esa dirección, así que no se cobraba nada. El pool también llega a su nodo como StartOS espera, lo que arregla la minería con Flowee the Hub: sus credenciales RPC cambiaron de sitio y el pool seguía buscando las antiguas. Se elimina Knuth como backend: no sirve el tipo de plantilla de bloque que pide este pool. Las direcciones de minería se muestran como URLs stratum+tcp:// que puede copiar directamente en un minero, y una nueva comprobación de estado Nodo avisa cuando el nodo aún se está sincronizando.',
     de_DE:
