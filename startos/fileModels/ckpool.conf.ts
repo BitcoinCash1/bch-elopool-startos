@@ -26,11 +26,9 @@ const shape = z.object({
 export type CkpoolConf = z.infer<typeof shape>
 
 /**
- * ckpool reads `poolfee` with jansson's `json_is_real`, which is false for a
- * whole number, so a fee of 1 would be discarded and no fee taken at all. JSON
- * cannot spell a whole number as a float, so the value is stitched in after
- * serialisation, keyed off a sentinel that cannot collide with anything
- * `JSON.stringify` emits.
+ * ckpool reads `poolfee` with jansson's `json_is_real`, which rejects a whole
+ * number — a fee of 1 would be discarded and nothing taken. JSON cannot spell a
+ * whole number as a float, hence the sentinel.
  */
 const POOL_FEE = ' poolfee '
 
@@ -40,11 +38,7 @@ const toFile = (conf: CkpoolConf) =>
     conf.poolfee.toFixed(3),
   )
 
-/**
- * The pool and solo daemons each get their own copy on the shared volume, where
- * the dashboard's stats script also reads the RPC target and stratum port back
- * out of it. Regenerated in full by `main` on every start.
- */
+/** One per daemon, on the shared volume the dashboard's stats script reads. */
 export const ckpoolConf = (mode: 'pool' | 'solo') =>
   FileHelper.raw<CkpoolConf>(
     { base: sdk.volumes.main, subpath: `${mode}/ckpool.conf` },
