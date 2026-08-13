@@ -367,6 +367,10 @@ export const main = sdk.setupMain(async ({ effects }) => {
         serverurl: [`0.0.0.0:${poolPort}`],
         mindiff: 1,
         startdiff: poolDifficulty,
+        // ckpool treats listen ports >4000 as "highdiff" and defaults that
+        // to 1e6 (ASIC). Solo is on 4567, so pin highdiff to the configured
+        // start difficulty or chipnet CPU shares are rejected as too easy.
+        highdiff: poolDifficulty,
         maxdiff: 0,
         logdir: `${rootDir}/pool/log`,
         poolfee: poolFee / 100,
@@ -394,6 +398,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         serverurl: [`0.0.0.0:${soloPort}`],
         mindiff: 1,
         startdiff: poolDifficulty,
+        highdiff: poolDifficulty,
         maxdiff: 0,
         logdir: `${rootDir}/solo/log`,
         poolfee: 0,
