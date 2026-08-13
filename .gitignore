@@ -3,3 +3,4 @@ node_modules/
 javascript/
 .DS_Store
 ckpool-src/
+.deps/
