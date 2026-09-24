@@ -43,14 +43,14 @@ near-replica of that copy: every difference must be one of those listed below.
 - **Syncing with Start9-Community:** `git merge` their `master` into ours, never
   rebase or force-push. Take their side for packaging, layout, docs and CI;
   keep only the deliberate differences below.
-- **Branches:** `master` is released — every push to it runs Tag and Release.
-  Work happens on short-lived branches and reaches `master` through a PR.
+- **Branches:** `master` is released — every push to it runs Tag and Release,
+  and so does the upstream bot's dispatch after an auto-bump.
   `next` is kept on purpose: Start9's Sync Next workflow mirrors `master` into
   it, so do not delete it.
 - **Versions:** `<upstream>:<revision>` in the single `startos/versions/current.ts`.
   Never change the upstream part by hand; a new upstream starts at `:0` (the
-  auto-bump PR does this). Bump the revision once per shipped package change —
-  not for docs, CI or archive changes. `ALLOW_DOWNGRADE` stays `false` unless a
+  auto-bump does this). The revision is bumped only when the maintainer
+  decides — never for alignment, template, docs, CI or archive changes. `ALLOW_DOWNGRADE` stays `false` unless a
   release is known to be reversible.
 - **`assets/` vs `archive/`:** `assets/` is packed into the s9pk as a whole. Here
   it holds Start9's runtime files (nginx config, entrypoints, the stats API and
@@ -75,4 +75,4 @@ near-replica of that copy: every difference must be one of those listed below.
   byte-identical to it unless a difference is listed below. When the template,
   SDK or CLI moves, update every package. Where the template and the
   Start9-Community copy disagree, the template wins.
-- **Deliberate differences from Start9-Community:** newer upstream (skaisser's ckpool v1.3.0; the "id" patch in `patches/apply.py` anchors 9 RPC requests there, since upstream no longer calls `validateaddress`); ckpool `highdiff` pinned to the start difficulty (in `fileModels/ckpool.conf.ts` and `main.ts`; ckpool otherwise starts ports above 4000, including solo on 4567, at 1,000,000); Knuth (`knuth-bch`) as a fourth node backend (utils, dependencies with a recurring autoconfig task, selectNode, manifest, i18n); `ALLOW_DOWNGRADE` in `current.ts`; `check-upstream.yml` + `scripts/auto-bump.sh` (daily upstream tag check, opens a bump PR); `dependabot.yml`; `session-link-guard.yml`; `scripts/setup-vm-forwarding*` (LAN port forwarding for StartOS in a libvirt/KVM VM); `startos/index.ts` and `startos/sdk.ts` synced to the hello-world template; `archive/` (including the old `icon.png`); the matching README/instructions notes.
+- **Deliberate differences from Start9-Community:** newer upstream (skaisser's ckpool v1.3.0; the "id" patch in `patches/apply.py` anchors 9 RPC requests there, since upstream no longer calls `validateaddress`); ckpool `highdiff` pinned to the start difficulty (in `fileModels/ckpool.conf.ts` and `main.ts`; ckpool otherwise starts ports above 4000, including solo on 4567, at 1,000,000); Knuth (`knuth-bch`) as a fourth node backend (utils, dependencies with a recurring autoconfig task, selectNode, manifest, i18n); `ALLOW_DOWNGRADE` in `current.ts`; `check-upstream.yml` + `scripts/auto-bump.sh` (daily upstream tag check, commits the bump to `master` and dispatches Tag and Release; `tagAndRelease.yml` accepts that dispatch); `dependabot.yml`; `session-link-guard.yml`; `scripts/setup-vm-forwarding*` (LAN port forwarding for StartOS in a libvirt/KVM VM); `startos/index.ts` and `startos/sdk.ts` synced to the hello-world template; `archive/` (including the old `icon.png`); the matching README/instructions notes.
