@@ -28,7 +28,7 @@ PATCHES = [
         'src/bitcoin.c',
         r'{\"method\": ',
         r'{\"id\":0,\"method\": ',
-        10,
+        9,
     ),
     (
         'BCHD errors on the "coinbasetxn" GBT capability unless --miningaddr is set',

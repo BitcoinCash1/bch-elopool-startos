@@ -8,7 +8,7 @@ RUN apt-get update && \
     ca-certificates git python3 && \
     rm -rf /var/lib/apt/lists/*
 
-ARG CKPOOL_REF=v1.1.0
+ARG CKPOOL_REF=v1.3.0
 RUN git clone --depth 1 --branch ${CKPOOL_REF} \
     https://github.com/skaisser/ckpool.git /build/ckpool
 
