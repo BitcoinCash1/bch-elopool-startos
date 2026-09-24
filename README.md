@@ -1,306 +1,278 @@
-<div align="center">
-  <img src="icon.svg" alt="EloPool logo" width="21%" />
-  <h1>EloPool</h1>
-</div>
+<p align="center">
+  <img src="icon.png" alt="EloPool Logo" width="21%">
+</p>
 
-> **Upstream docs:** [github.com/skaisser/ckpool](https://github.com/skaisser/ckpool)
->
-> EloPool is a high-performance Bitcoin Cash mining pool built on ckpool. It supports dual-mode operation — pool mining with shared rewards and solo mining with winner-takes-all — and includes a built-in web dashboard for real-time monitoring.
+# EloPool on StartOS
+
+> Everything not listed in this document should behave the same as upstream
+> EloPool. If a feature, setting, or behavior is not mentioned here, the
+> upstream documentation is accurate and fully applicable — see the
+> Documentation section of `instructions.md` for links.
+
+[EloPool](https://github.com/skaisser/ckpool) is a Bitcoin Cash fork of ckpool: a mining pool your hardware connects to over stratum, building block templates from your own node. This package runs it as **two pools at once** — shared and solo — plus a dashboard, against whichever of the four Bitcoin Cash nodes you choose.
+
+- **Upstream repo:** <https://github.com/skaisser/ckpool>
+- **Wrapper repo:** <https://github.com/Start9-Community/bch-elopool-startos>
 
 ---
 
 ## Table of Contents
 
-1. [Image and Container Runtime](#1-image-and-container-runtime)
-2. [Volume and Data Layout](#2-volume-and-data-layout)
-3. [Installation and First-Run Flow](#3-installation-and-first-run-flow)
-4. [Default Networking](#4-default-networking)
-5. [Configuration Management](#5-configuration-management)
-6. [Network Access and Interfaces](#6-network-access-and-interfaces)
-7. [Actions (StartOS UI)](#7-actions-startos-ui)
-8. [Backups and Restore](#8-backups-and-restore)
-9. [Health Checks](#9-health-checks)
-10. [Dependencies](#10-dependencies)
-11. [Default Overrides](#11-default-overrides)
-12. [Limitations and Differences](#12-limitations-and-differences)
-13. [What Is Unchanged from Upstream](#13-what-is-unchanged-from-upstream)
-14. [Contributing](#14-contributing)
-15. [Quick Reference for AI Consumers](#15-quick-reference-for-ai-consumers)
+- [Image and Container Runtime](#image-and-container-runtime)
+- [Volume and Data Layout](#volume-and-data-layout)
+- [File Models](#file-models)
+- [Dependencies](#dependencies)
+- [Network Access and Interfaces](#network-access-and-interfaces)
+- [Installation and First-Run Flow](#installation-and-first-run-flow)
+- [Actions](#actions)
+- [Tasks](#tasks)
+- [Health Checks](#health-checks)
+- [Backups and Restore](#backups-and-restore)
+- [Limitations and Differences](#limitations-and-differences)
+- [Upstream Updates](#upstream-updates)
+- [Quick Reference for AI Consumers](#quick-reference-for-ai-consumers)
 
 ---
 
-## 1. Image and Container Runtime
+## Image and Container Runtime
 
-| Field | Value |
-|---|---|
-| **Image ID** | `elopool` |
-| **Build** | Docker build from `Dockerfile.binary` (pulls pre-built binary from GHCR: `ghcr.io/bitcoincash1/elopool-bch`) |
-| **Architectures** | `x86_64`, `aarch64` (aarch64 emulates as x86_64 if not natively available) |
-| **Pool daemon command** | `pool-entrypoint.sh pool /data/pool/elopool.conf` |
-| **Solo daemon command** | `pool-entrypoint.sh solo /data/solo/elopool.conf` |
-| **UI daemon command** | `ui-entrypoint.sh` |
-| **SubContainers** | Three separate SubContainers: `pool-sub`, `solo-sub`, `ui-sub` |
+One image, built here, running three times.
 
----
+| Property      | Value                                     |
+| ------------- | ----------------------------------------- |
+| Image         | Built from this repo's `Dockerfile`       |
+| Architectures | x86_64, aarch64                           |
+| Command       | The pool in two modes, plus the dashboard |
 
-## 2. Volume and Data Layout
+| Subcontainer | Purpose                                    |
+| ------------ | ------------------------------------------ |
+| `pool-sub`   | The shared pool — attach here for its logs |
+| `solo-sub`   | The solo pool, same image, different mode  |
+| `ui-sub`     | The dashboard                              |
 
-| Volume Name | Mount Point | Purpose |
-|---|---|---|
-| `main` | `/data` | Pool configuration, share logs, statistics |
+**The image is built from source, natively for each architecture.** Cross-building it on one platform would put the wrong binaries in the other architecture's image while the manifest claimed otherwise.
 
-**StartOS-managed files inside `/data`:**
+## Volume and Data Layout
 
-| File / Directory | Managed By | Purpose |
-|---|---|---|
-| `store.json` | StartOS SDK file model | Package state: payout address, pool fee, difficulty, node selection, RPC credentials |
-| `pool/elopool.conf` | Written at runtime from `store.json` | ckpool-format JSON config for pool mode daemon |
-| `solo/elopool.conf` | Written at runtime from `store.json` | ckpool-format JSON config for solo mode daemon |
-| `pool/log/` | EloPool | Pool mode share logs and statistics |
-| `solo/log/` | EloPool | Solo mode share logs and statistics |
+One volume, plus a read-only view of the selected node's.
 
-**Dependency volume mounted at runtime (read-only):**
+| Volume                 | Mount Point | Purpose                            |
+| ---------------------- | ----------- | ---------------------------------- |
+| `main`                 | `/data`     | Both pools' configuration and logs |
+| The node's `main` (ro) | `/mnt/node` | The node's own store               |
 
-| Mount Point | Source | Purpose |
-|---|---|---|
-| `/mnt/node` | Selected node package `main` volume | Read `store.json` for node RPC credentials |
+| Path         | Written by                 | Holds                                       |
+| ------------ | -------------------------- | ------------------------------------------- |
+| `pool/`      | `main` and the shared pool | Its config, and its share and block history |
+| `solo/`      | `main` and the solo pool   | The same, for solo                          |
+| `store.json` | Actions                    | Everything the user configures              |
 
----
+**The two pools keep entirely separate state**, in sibling directories — separate configurations, separate logs, separate totals.
 
-## 3. Installation and First-Run Flow
+**The node's volume is mounted for its store, not for chain data.** What is read from it is which chain the node is on and — for three of the four nodes — the RPC credentials it published there.
 
-1. StartOS builds or pulls the `elopool` container image.
-2. Seed files are written: `store.json` with defaults (payout address empty, pool fee 1%, identifier `EloPool`, starting difficulty 42, node: BCHN).
-3. On start, the Node Backend selection is confirmed (a task prompts the user if not yet set).
-4. EloPool reads node RPC credentials from `/mnt/node/store.json` inside the pool SubContainer (up to 15 retry attempts with 2-second delays).
-5. A JSON-RPC probe (`getblockchaininfo` + `getblocktemplate`) is sent to the node to verify it is synced and ready for mining (up to 30 attempts).
-6. Pool and solo config files (`elopool.conf`) are written to `/data/pool/` and `/data/solo/` with the live RPC credentials and configured parameters.
-7. Three daemons start: pool mode stratum (port 3333), solo mode stratum (port 4567), and web UI (port 80).
-8. Miners point their ASIC hardware to the stratum URLs shown in Connection Info.
+## File Models
 
----
+Two models, one of which is written twice.
 
-## 4. Default Networking
+| File          | Format | Modelled                | Written by         |
+| ------------- | ------ | ----------------------- | ------------------ |
+| `ckpool.conf` | JSON   | Yes, once per pool      | `main`             |
+| `store.json`  | JSON   | Yes — `FileHelper.json` | Actions and `main` |
 
-| Transport | Default | Inbound | How to Change |
-|---|---|---|---|
-| **Clearnet (IPv4/IPv6)** | Enabled — all three ports exposed by StartOS | Enabled for miners and dashboard browsers | Managed by StartOS |
-| **Tor (node RPC)** | Off | Not applicable — for outbound RPC to the node only | Set RPC Network Mode to "Prefer Tor" or "Tor Only" in Configure action |
+**Both pool configurations are generated in full at every start**, from the stored settings plus the node address resolved at that moment. A hand-edit does not survive.
 
----
+**The pool fee has to be written as a decimal**, and that is not a formatting nicety: ckpool reads it through a JSON parser whose "is this a real number" test is false for a whole number, so an integer fee is silently discarded in favour of the built-in default. The model writes it with decimal places for exactly that reason.
 
-## 5. Configuration Management
+The store holds the node selection, the payout address, the fee, the pool identifier and starting difficulty, the Flowee credential, and two pieces of bookkeeping — the "wipe on next start" flag and the last-seen chain, both of which `main` writes itself and are therefore deliberately outside its reactive read.
 
-| Group | Settings Covered |
-|---|---|
-| **Select Node Backend** | Choose which BCH full node provides mining RPC: BCHN, BCHD, Flowee |
-| **Configure** | Payout address, pool fee (%), pool identifier (coinbase tag), starting difficulty, node address mode (auto/custom), custom node host/port, Tor RPC mode, Tor proxy host/port, RPC credentials source (auto/manual), manual RPC username/password |
+## Dependencies
 
----
+Four declared, **exactly one active** — whichever node you select.
 
-## 6. Network Access and Interfaces
+| Dependency          | Required         | Health checks required | Why                            |
+| ------------------- | ---------------- | ---------------------- | ------------------------------ |
+| Bitcoin Cash Node   | Only if selected | `primary`              | Block templates and submission |
+| Bitcoin Cash Daemon | Only if selected | `rpc-plaintext`        | The same                       |
+| Flowee the Hub      | Only if selected | `primary`              | The same                       |
+| Knuth               | Only if selected | `primary`              | The same                       |
 
-| Interface | Port | Protocol | Purpose | Condition |
-|---|---|---|---|---|
-| Pool Mining | 3333 | TCP (Stratum v1) | Shared reward pool mining — connect ASIC hardware here | Always |
-| Solo Mining | 4567 | TCP (Stratum v1) | Winner-takes-all solo mining | Always |
-| Web Dashboard | 80 | HTTP | Real-time pool and solo mining statistics | Always |
+**They are gated on being up, not on being synced** — a node's initial sync takes days, and reporting that the chain is behind is more useful than refusing to start for the duration. The Node health check is what reports it.
 
----
+**Each node is dialed differently:** Bitcoin Cash Node remaps its RPC port per chain, so which port to resolve depends on the chain it is on; Bitcoin Cash Daemon is dialed through its plaintext proxy so no certificate has to be trusted; and **Flowee keeps only a hash of each RPC password**, so this package mints its own credential and asks Flowee to register it.
 
-## 7. Actions (StartOS UI)
+Selecting a node clears the tasks belonging to the nodes you are not on.
 
-### Info
+## Network Access and Interfaces
 
-| Action ID | Name | Description |
-|---|---|---|
-| `connection-info` | Connection Info | Displays stratum URLs for pool and solo mining, username format, and password convention |
+Three interfaces.
 
-### Configuration
+| Interface | Id            | Type | Port | Description                        |
+| --------- | ------------- | ---- | ---- | ---------------------------------- |
+| Shared    | `pool-mining` | p2p  | 3333 | The shared pool's stratum endpoint |
+| Solo      | `solo-mining` | p2p  | 4567 | The solo pool's stratum endpoint   |
+| Dashboard | `web-ui`      | ui   | 80   | Hashrate, shares, workers, blocks  |
 
-| Action ID | Name | Description |
-|---|---|---|
-| `select-node` | Select Node Backend | Choose which installed BCH node package provides mining RPC |
-| `configure` | Configure | Set payout address, pool fee, pool identifier, starting difficulty, node endpoint, Tor RPC mode, and credential source |
+**Which pool a miner is on is decided purely by which port it connects to**, and the difference between them is a single flag in ckpool.
 
-### Maintenance
+| Pool       | Who a found block pays      | What your fee does                    |
+| ---------- | --------------------------- | ------------------------------------- |
+| **Shared** | The operator — your address | Nothing. The fee is set to zero here. |
+| **Solo**   | The miner that found it     | Takes its configured percentage       |
 
-| Action ID | Name | Description |
-|---|---|---|
-| `reset-mining-state` | Wipe Mining State | Clear all share logs and restart the pool; miners reconnect at configured starting difficulty |
+**Shared mining pays the whole block to your payout address**, and settling with the miners who contributed is then between you and them, off-chain. A pool fee on that endpoint would only take a cut of your own reward, so the package writes it as zero.
 
----
+**Solo mining pays the finder**, which is what gives a fee something to take a share of. The fee is a percentage, and ckpool only pays it out when a fee address validates — so **without that address, no fee is taken however high the percentage is set**. The package writes the address alongside the fee whenever the fee is non-zero.
 
-## 8. Backups and Restore
+Its sibling package, ASICSeer, has no solo mode at all, because its upstream has none.
 
-**What IS backed up:**
-- `store.json` — all pool configuration, selected node, payout address, fee settings
-- `pool/elopool.conf` and `solo/elopool.conf` — generated config files
-- `pool/log/` and `solo/log/` — share logs and statistics
+Both stratum ports are raw TCP and **advertise themselves with a `stratum+tcp://` scheme** rather than an HTTP one, so an address can be copied straight into mining hardware.
 
-**What is NOT backed up:**
-- Nothing is explicitly excluded — the entire `main` volume is backed up.
+**Stratum is unencrypted** — that is the protocol, not a choice here.
 
-Restoring will overwrite current pool configuration. Share statistics are included in the backup.
+**Nothing is authenticated**, on either stratum port or the dashboard. Anyone who can reach a port can mine there, and anyone who can reach the dashboard sees your statistics.
 
----
+## Installation and First-Run Flow
 
-## 9. Health Checks
+Install raises **two `critical` tasks**: choose the node, and set the payout address. Neither can be skipped — a pool with no node has no work, and shared mining with no address has nowhere to pay a block.
 
-| Check | Method | Key Messages |
-|---|---|---|
-| **Pool Mining** (daemon ready) | `sdk.healthCheck.checkPortListening` on port 3333 | `Pool mining stratum ready on port 3333` / `Pool mining stratum starting...` |
-| **Solo Mining** (daemon ready) | `sdk.healthCheck.checkPortListening` on port 4567 | `Solo mining stratum ready on port 4567` / `Solo mining stratum starting...` |
-| **Web UI** (daemon ready) | `sdk.healthCheck.checkPortListening` on port 80 | `Web dashboard is ready` / `Web dashboard starting...` |
+Selecting **Flowee** raises a third task, on Flowee rather than here, asking it to register the credential this package generated. Selecting **Knuth** raises one on Knuth instead, asking it to turn JSON-RPC on and use its full database mode; it is recurring, so turning either back off raises it again.
 
----
+Once the node is running, both pools write their configurations, start, and accept miners.
 
-## 10. Dependencies
+**Neither pool refuses to start over a fixable problem.** A missing payout address, an address on the wrong chain, or an unreachable node brings the service up with a single failing health check that says which — rather than throwing, because a thrown start-up crash-loops under automatic restart and leaks a mount set every cycle.
 
-### Bitcoin Cash Node — BCHN (optional)
+## Actions
 
-| Field | Value |
-|---|---|
-| **Package ID** | `bitcoincashd` |
-| **Version constraint** | Any |
-| **Required state** | Running and fully synced; `getblocktemplate` must succeed |
-| **Mounted volumes** | `main` volume mounted read-only at `/mnt/node` for credential discovery |
-| **Purpose** | Provides JSON-RPC for block template generation and submission |
+Four actions.
 
-### Bitcoin Cash Daemon — BCHD (optional)
+### Select Node Backend
 
-| Field | Value |
-|---|---|
-| **Package ID** | `bchd` |
-| **Version constraint** | Any |
-| **Required state** | Running and fully synced |
-| **Mounted volumes** | `main` volume mounted read-only at `/mnt/node` for credential discovery |
-| **Purpose** | Go BCH full node alternative; EloPool automatically uses BCHD's plaintext proxy port 8334 instead of 8332 (BCHD RPC requires TLS; ckpool-lineage has no TLS library) |
+Chooses which of the four Bitcoin Cash nodes both pools mine against.
 
-### Flowee the Hub (optional)
+- **What it changes:** the selection, and through it the dependency, the mount, and the RPC address.
+- **Cost:** both pools restart onto the new node.
+- **Choosing Flowee raises the credential task on Flowee**, from here rather than from the dependency declaration — which re-runs on every init and would keep asking.
 
-| Field | Value |
-|---|---|
-| **Package ID** | `flowee` |
-| **Version constraint** | Any |
-| **Required state** | Running and fully synced |
-| **Mounted volumes** | `main` volume mounted read-only at `/mnt/node` for credential discovery |
-| **Purpose** | Fast BCH validator alternative; uses SPV-level validation — not recommended as sole mining node for production block creation |
+### Configure
 
-### Tor (optional)
+The payout address, the fee, the pool identifier written into blocks, and the starting difficulty. The starting difficulty is also written as ckpool's `highdiff`: ckpool otherwise starts any port above 4000 — the solo port is 4567 — at 1,000,000, and every share from a small miner there is rejected as too easy.
 
-| Field | Value |
-|---|---|
-| **Package ID** | `tor` |
-| **Version constraint** | Any |
-| **Required state** | Running (only needed when RPC Network Mode is set to Tor) |
-| **Mounted volumes** | None |
-| **Purpose** | SOCKS5 proxy for routing node RPC calls over Tor (onion-routed node endpoint support) |
+- **The address does two jobs**: it is where a shared block pays, and it is where the solo fee is collected.
+- **The fee applies to solo only** — see [Network Access and Interfaces](#network-access-and-interfaces).
+- **The address is checked against the node's chain by prefix**, locally. The node is not asked, because this fork decodes Cash addresses itself and never needed to.
 
-**At least one of BCHN, BCHD, or Flowee must be installed and selected.**
+### Wipe Mining State
 
----
+Clears the accumulated share and block statistics for both pools.
 
-## 11. Default Overrides
+- **What it changes:** sets a flag; the clearing happens on the next start, before the pools launch — because ckpool reloads its totals from its own status file at start.
 
-| Setting | Upstream Default | StartOS Value | Reason |
-|---|---|---|---|
-| Node RPC port for BCHD | 8332 (standard) | 8334 (stunnel plaintext proxy) | ckpool-lineage has no TLS library; BCHD exposes a plaintext proxy on 8334 as a StartOS sidecar |
-| `pool_fee` JSON format | Integer OK | Forced to float (e.g., `1.0` not `1`) | ckpool requires `pool_fee` to be a JSON float value |
-| Starting difficulty | 42 | 42 (configurable) | Upstream default; exposed for adjustment to match hardware hash rate |
+### Connection Info
 
----
+Shows what to type into mining hardware for each endpoint.
 
-## 12. Limitations and Differences
+- **Requires the service to be running.**
 
-1. EloPool requires a BCH full node with a **working `getblocktemplate` RPC**. If the selected node is not fully synced or `getblocktemplate` fails, EloPool will not start (up to 30 probe attempts, 2 seconds apart).
-2. **Solo mode has 0% pool fee** by design. All reward goes to the configured payout address when a block is found.
-3. There is **no per-miner authentication**. Miners use their BCH payout address as the Stratum username. The pool pays directly to whatever address the miner configures.
-4. **Flowee is not recommended as the sole mining node** for production block creation. Flowee uses SPV-level validation and could theoretically accept an invalid chain tip. Use BCHN or BCHD for production mining.
-5. The web dashboard (port 80) provides real-time stats but no configuration interface. All configuration is via the StartOS Actions.
-6. EloPool does **not** include the developer donation toggle that ASICSeer has. EloPool is a different upstream fork (skaisser/ckpool vs cculianu/asicseer-pool).
-7. Share statistics are **reset to zero** when the Wipe Mining State action is used.
+## Tasks
+
+Up to four, one of which lands on another package.
+
+| Task                | Raised on    | Severity   | Raised when                                            | Cleared when           |
+| ------------------- | ------------ | ---------- | ------------------------------------------------------ | ---------------------- |
+| Select Node Backend | This package | `critical` | Install                                                | The action runs        |
+| Configure           | This package | `critical` | Install                                                | The action runs        |
+| Configure (address) | This package | `critical` | A start with no address, or one on the wrong chain     | A valid address is set |
+| Register credential | `flowee`     | `critical` | Flowee is selected                                     | Flowee registers it    |
+| Auto-Configure      | `knuth-bch`  | `critical` | Knuth is selected and its JSON-RPC or full mode is off | Its settings match     |
+
+The address task is raised from the start-up path with its own replay key, so it reappears whenever the address goes missing or stops matching the chain.
+
+## Health Checks
+
+Four checks.
+
+| Check         | Displayed as    | Method                                |
+| ------------- | --------------- | ------------------------------------- |
+| `pool`        | "Shared Mining" | The shared pool's log, then its port  |
+| `solo`        | "Solo Mining"   | The solo pool's log, then its port    |
+| `ui`          | "Web Dashboard" | The dashboard's port                  |
+| `node-status` | "Node"          | The node's store, read from the mount |
+
+**Each mining check reads the log before probing its port.** ckpool holds the stratum port open even when it cannot get a block template, so a bare port check would report a healthy pool that mines nothing. The check looks for the two failures that produce exactly that: an address the node rejected, and a node that is not answering.
+
+**The Node check is how a chain change is noticed.** The node's chain is a file rather than a reactive source, and it has to be re-read — a binding a node moves off is left _disabled_ rather than removed, and a disabled binding still resolves, so the address read would never go null on its own. On a change, the check restarts the service.
+
+When the node reports it is still syncing, that is reported as loading rather than blocking: **a block found on a stale tip would be orphaned**, which is worth saying and not worth refusing to run over.
+
+## Backups and Restore
+
+The `main` volume is copied wholesale — `sdk.Backups.ofVolumes('main')`. That is both pools' settings, their generated configurations, and their share and block history.
+
+**There are no keys here.** Payouts happen in the coinbase of a found block; this service holds no wallet and custodies nothing.
+
+A restored instance comes back on the same node with the same address and fee, re-resolves the node's address, and continues.
+
+## Limitations and Differences
+
+1. **Two pools, one configuration.** Address, fee, identifier and difficulty are shared; only the mode and the ports differ.
+2. **The fee only applies to solo.** On the shared pool it is written as zero, because the block already pays you.
+3. **A fee with no address collects nothing**, silently — ckpool gates the fee output on the address validating.
+4. **Nothing is authenticated**, on either stratum port or the dashboard.
+5. **Stratum is unencrypted** — that is the protocol.
+6. **A node is required but not required to be synced.** Blocks found while it is behind would be orphaned, and the Node check says so.
+7. **Both configurations are regenerated at every start**; editing them directly does not survive.
+8. **Changing chains wipes the statistics** for both pools, because shares counted at one chain's difficulty mean nothing on another.
 
 ---
 
-## 13. What Is Unchanged from Upstream
+## Upstream Updates
 
-- All upstream ckpool / skaisser Stratum v1 protocol behavior
-- Vardiff (variable difficulty) adjustment algorithm
-- Share accounting and block submission logic
-- Web UI dashboard format and metrics
-- Coinbase transaction construction
+`check-upstream.yml` looks for a new ckpool release tag daily. When one appears, `scripts/auto-bump.sh` sets `startos/versions/current.ts` to `<upstream>:0`, resets `ALLOW_DOWNGRADE` to `false`, updates `ARG CKPOOL_REF` in the `Dockerfile`, and opens a pull request from `auto-bump/<tag>`. Before merging, check that every patch in `patches/apply.py` still applies to the new source — the build stops if one does not. Nothing reaches `master` until that PR is merged; merging it is what releases the new version. Package-only fixes bump the revision after the colon by hand in their own PR.
 
----
-
-## 14. Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-
-## 15. Quick Reference for AI Consumers
+## Quick Reference for AI Consumers
 
 ```yaml
 package_id: bch-elopool
-title: EloPool
-license: GPL-3.0
-upstream_repo: https://github.com/skaisser/ckpool
-package_repo: https://github.com/BitcoinCash1/bch-elopool-startos
-image:
-  id: elopool
-  build: dockerfile
-  source: Dockerfile.binary (pre-built GHCR binary ghcr.io/bitcoincash1/elopool-bch)
+image: built from ./Dockerfile # ckpool from source, natively per arch
 architectures:
   - x86_64
   - aarch64
+subcontainers:
+  - pool-sub # shared mode
+  - solo-sub # ckpool -B (btcsolo)
+  - ui-sub
 volumes:
-  - name: main
-    mountpoint: /data
-    purpose: pool config, share logs, statistics
-ports:
-  - interface: pool-mining
-    port: 3333
-    protocol: tcp
-    purpose: Stratum v1 pool mining (shared rewards)
-    condition: always
-  - interface: solo-mining
-    port: 4567
-    protocol: tcp
-    purpose: Stratum v1 solo mining (winner-takes-all)
-    condition: always
-  - interface: web-ui
-    port: 80
-    protocol: http
-    purpose: Web dashboard for real-time pool statistics
-    condition: always
-dependencies:
-  bitcoincashd:
-    optional: true
-    purpose: BCHN full node — JSON-RPC for block template and submission
-  bchd:
-    optional: true
-    purpose: BCHD full node — uses plaintext proxy port 8334 (ckpool has no TLS)
-  flowee:
-    optional: true
-    purpose: Flowee the Hub — fast BCH validator (not recommended sole mining node)
-  tor:
-    optional: true
-    purpose: SOCKS5 proxy for Tor-routed node RPC
-startos_managed_files:
-  - /data/store.json
-  - /data/pool/elopool.conf
-  - /data/solo/elopool.conf
+  main: /data # pool/ and solo/ each hold a config and a log dir; store.json at the root
+  # the selected node's main volume is read-only at /mnt/node — for its store, not chain data
+file_models:
+  - pool/ckpool.conf # generated in full each start
+  - solo/ckpool.conf # same, with poolfee + pooladdress
+  - store.json # node selection, payout address, fee, identifier, difficulty, flowee creds
+startos_managed_env_vars: [] # everything is ckpool.conf
+dependencies: # exactly one is declared at a time, from the stored selection
+  - bitcoincashd # healthChecks: [primary]; RPC port varies per chain
+  - bchd # healthChecks: [rpc-plaintext]; dialed via the plaintext proxy
+  - flowee # healthChecks: [primary]; needs a credential registered via createTask
+  - knuth-bch # healthChecks: [primary]; RPC port varies per chain; JSON-RPC + full mode via autoconfig task
+interfaces:
+  pool-mining: { type: p2p, port: 3333 } # shared; block pays btcaddress
+  solo-mining: { type: p2p, port: 4567 } # solo; block pays the finder, fee to pooladdress
+  web-ui: { type: ui, port: 80 }
 actions:
-  - { id: connection-info, name: "Connection Info", group: Info }
-  - { id: select-node, name: "Select Node Backend", group: Configuration }
-  - { id: configure, name: "Configure", group: Configuration }
-  - { id: reset-mining-state, name: "Wipe Mining State", group: Maintenance }
+  - select-node
+  - configure
+  - wipe-mining-state
+  - connection-info # only-running
+tasks:
+  - { action: select-node, severity: critical } # install
+  - { action: configure, severity: critical } # install
+  - { action: configure, severity: critical, replayId: payout-address } # raised from main
+  - { on: flowee, action: create-dependent-credential, severity: critical }
+  - { on: knuth-bch, action: autoconfig, severity: critical, once: false }
 health_checks:
-  - { id: pool, display: "Pool Mining", method: "port 3333 listen check" }
-  - { id: solo, display: "Solo Mining", method: "port 4567 listen check" }
-  - { id: ui, display: "Web UI", method: "port 80 listen check" }
-backup_volumes:
-  - main
-backup_excludes: []
+  - pool # "Shared Mining"; scrapes the log before probing the port
+  - solo # "Solo Mining"; same
+  - ui # "Web Dashboard"
+  - node-status # "Node"; re-reads the node's chain and restarts on a change
 ```
