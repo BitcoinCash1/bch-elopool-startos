@@ -52,6 +52,18 @@ PATCHES = [
         '',
         1,
     ),
+    (
+        'getblockchaininfo names the test networks "test4", "scale" and "chip" '
+        '(BCHN, and Knuth after it), which upstream does not recognise, so the '
+        'pool falls back to the mainnet CashAddr prefix and rejects every '
+        'bchtest: payout address',
+        'src/generator.c',
+        '!strcmp(chain, "chipnet"))',
+        '!strcmp(chain, "chipnet") ||\n'
+        '\t\t !strcmp(chain, "test4") || !strcmp(chain, "scale") ||\n'
+        '\t\t !strcmp(chain, "chip"))',
+        1,
+    ),
 ]
 
 
